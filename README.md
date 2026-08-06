@@ -52,6 +52,9 @@ The H2 console connection details are the default JDBC URL in `src/main/resource
 - `POST /api/v1/audit/events` — append an immutable audit event.
 - `GET /api/v1/audit/events` — filter and cursor-page audit events.
 - `GET /api/v1/audit/verify` — verify the stored hash chain.
+- `POST /api/v1/audit/retention/archive` — create the next eligible logical archive manifest.
+- `POST /api/v1/audit/events/{eventId}/redactions` — redact one JSON Pointer path from response projections.
+- `GET /api/v1/audit/export?actorId=...` or `?resourceId=...` — produce a verifiable export bundle.
 
 ## Build prerequisites
 

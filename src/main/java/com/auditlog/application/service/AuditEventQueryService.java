@@ -8,6 +8,7 @@ import com.auditlog.infrastructure.persistence.entity.AuditEventEntity;
 import com.auditlog.infrastructure.persistence.entity.AuditEventPayloadEntity;
 import com.auditlog.infrastructure.persistence.repository.AuditEventPayloadRepository;
 import com.auditlog.infrastructure.persistence.repository.AuditEventRepository;
+import com.auditlog.infrastructure.persistence.repository.PayloadRedactionRepository;
 import com.auditlog.support.exception.AuditLogException;
 import com.auditlog.support.exception.ErrorCode;
 import org.springframework.data.domain.PageRequest;
@@ -29,14 +30,17 @@ public class AuditEventQueryService {
     private final AuditEventRepository auditEventRepository;
     private final AuditEventPayloadRepository payloadRepository;
     private final AesGcmPayloadProtector payloadProtector;
+    private final PayloadRedactionRepository redactions;
+    private final PayloadRedactionProjector redactionProjector;
 
     public AuditEventQueryService(
             AuditEventRepository auditEventRepository,
             AuditEventPayloadRepository payloadRepository,
-            AesGcmPayloadProtector payloadProtector) {
+            AesGcmPayloadProtector payloadProtector, PayloadRedactionRepository redactions, PayloadRedactionProjector redactionProjector) {
         this.auditEventRepository = auditEventRepository;
         this.payloadRepository = payloadRepository;
         this.payloadProtector = payloadProtector;
+        this.redactions = redactions; this.redactionProjector = redactionProjector;
     }
 
     @Transactional(readOnly = true)
@@ -52,8 +56,10 @@ public class AuditEventQueryService {
         boolean hasNextPage = fetched.size() > criteria.pageSize();
         List<AuditEventEntity> pageEvents = hasNextPage ? fetched.subList(0, criteria.pageSize()) : fetched;
         Map<UUID, AuditEventPayloadEntity> payloadsByEventId = payloadsByEventId(pageEvents);
+        Map<UUID, List<String>> redactionsByEventId = new HashMap<>();
+        redactions.findByTargetEventIdIn(pageEvents.stream().map(AuditEventEntity::getEventId).toList()).forEach(redaction -> redactionsByEventId.computeIfAbsent(redaction.getTargetEventId(), ignored -> new java.util.ArrayList<>()).add(redaction.getJsonPointer()));
         List<AuditEventResponse> events = pageEvents.stream()
-                .map(event -> toResponse(event, payloadsByEventId.get(event.getEventId())))
+                .map(event -> toResponse(event, payloadsByEventId.get(event.getEventId()), redactionsByEventId.getOrDefault(event.getEventId(), List.of())))
                 .toList();
         String nextCursor = hasNextPage
                 ? new AuditEventCursor(pageEvents.getLast().getChainSequence(), criteria.sortDirection()).encode()
@@ -83,7 +89,7 @@ public class AuditEventQueryService {
         return payloads;
     }
 
-    private AuditEventResponse toResponse(AuditEventEntity event, AuditEventPayloadEntity payload) {
+    private AuditEventResponse toResponse(AuditEventEntity event, AuditEventPayloadEntity payload, List<String> redactionPointers) {
         if (payload == null) {
             throw new AuditLogException(ErrorCode.CHAIN_INTEGRITY_VIOLATION,
                     "Audit event payload is missing for event " + event.getEventId());
@@ -96,7 +102,7 @@ public class AuditEventQueryService {
                 event.getResourceType(),
                 event.getResourceId(),
                 event.getRecordedAt(),
-                payloadProtector.unprotect(payload.getEncryptionAlgorithm(), payload.getEncryptionNonce(), payload.getCiphertext()),
+                redactionProjector.project(payloadProtector.unprotect(payload.getEncryptionAlgorithm(), payload.getEncryptionNonce(), payload.getCiphertext()), redactionPointers),
                 event.getPreviousHash(),
                 event.getContentHash(),
                 event.getHashAlgorithm(),
