@@ -190,7 +190,6 @@ The assignment permits filters in any combination. A separate compound index for
 - **Archive manifests:** protect continuity across legitimate deletion/movement, but require a verifier that understands archive bundles and their boundaries.
 - **No database trigger for immutability in this migration:** least-privilege runtime roles are clearer and permit the assignment's direct-datastore tampering demonstration. A production deployment may add privileged-role-aware immutable-table triggers after operational workflows are defined.
 - **No generic JSONB index:** the assignment does not query by payload fields. Avoiding it limits index bloat and encourages explicit, reviewed query requirements.
-
 ## 7. Preconditions before applying the migration
 
 1. Freeze the canonical serialization specification and create hash test vectors.
