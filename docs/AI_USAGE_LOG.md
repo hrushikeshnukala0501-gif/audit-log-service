@@ -22,6 +22,7 @@ This log records material AI assistance used during development. The engineer re
 | 2026-08-06 | Scenario C compliance reporting | Clarified the under-specified regulator-access request, documented assumptions and boundaries, and added a read-only client-account access report with sequence and hash-chain metadata while omitting plaintext payloads. | The endpoint is a prototype reporting view, not a claim of regulatory compliance. Authentication, regulator delivery, signed checkpoints, legal hold, and jurisdiction-specific policy remain deferred. |
 | 2026-08-06 | Swagger UI completion | Extended the existing SpringDoc API group to include compliance reporting and enriched generated API metadata and controller tags. | Swagger UI remains available at `/swagger-ui.html`; runtime loading must be checked after resolving the local Maven/IDE file lock. |
 | 2026-08-06 | Redaction compatibility correction | Removed an unavailable Jackson `JsonPointer.mayMatch()` call from the redaction projector. | The projector now uses supported pointer operations and preserves the same response-time redaction behaviour. |
+| 2026-08-06 | Persistence-conflict diagnostics | Added safe server-side exception logging for persistence conflicts while retaining the generic API error response. | This exposes the database constraint name in local logs without returning storage internals or payload data to API clients. |
 
 ## Operating rules
 

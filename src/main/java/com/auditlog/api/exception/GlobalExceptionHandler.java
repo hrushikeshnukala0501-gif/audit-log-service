@@ -55,7 +55,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handlePersistenceConflict(
             DataIntegrityViolationException exception,
             HttpServletRequest request) {
-        LOGGER.warn("Persistence conflict while processing {} {}", request.getMethod(), request.getRequestURI());
+        LOGGER.warn("Persistence conflict while processing {} {}", request.getMethod(), request.getRequestURI(), exception);
         return error(HttpStatus.CONFLICT, ErrorCode.PERSISTENCE_CONFLICT,
                 "The request conflicts with persisted audit data", List.of(), request);
     }
