@@ -125,7 +125,7 @@ For the product statement, "Regulators need to be able to audit access to client
 | --- | --- | --- |
 | Integrity | A stored event field changes but its stored event hash remains unchanged. | Recalculate the content hash and report a content-hash mismatch at that sequence. |
 | Integrity | A stored event hash changes, or its predecessor hash points to the wrong record. | Validate both recalculated content hash and expected predecessor linkage; classify the first failure. |
-| Integrity | A row is deleted, inserted, or reordered directly in storage. | Verify contiguous sequence/order and predecessor linkage; report the earliest detectable gap or link violation. |
+| Integrity | A row is deleted, inserted, or reordered directly in storage. | Verify strict sequence order, predecessor linkage, and the final protected chain head. Do not treat identity-sequence gaps after rolled-back writes as tampering. |
 | Integrity | An attacker changes all downstream hashes after changing historical content. | Document this limitation; mitigate in future through signed/external checkpoints or write-once storage. |
 | Concurrency | Two writes read the same predecessor and create competing links. | Use a transaction/lock/serialization strategy and add concurrent-write tests. |
 | Canonicalization | JSON key order, number formatting, Unicode normalization, omitted versus null fields, or time precision changes the same logical event's hash. | Specify canonical representation precisely and test each case. |

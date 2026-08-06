@@ -1,6 +1,4 @@
--- H2 2.x reference schema for the Audit Log Service.
--- The Flyway migration at src/main/resources/db/migration/V1__create_audit_log_schema.sql
--- is the executable source of truth; this file is retained for schema review.
+-- H2 2.x initial schema for the Audit Log Service.
 
 CREATE SEQUENCE audit_event_sequence START WITH 1 INCREMENT BY 1;
 

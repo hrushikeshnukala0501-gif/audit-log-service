@@ -2,9 +2,9 @@ spring:
   application:
     name: audit-log-service
   datasource:
-    url: ${AUDIT_DB_URL:jdbc:postgresql://localhost:5432/audit_log}
-    username: ${AUDIT_DB_USERNAME:audit_service}
-    password: ${AUDIT_DB_PASSWORD}
+    url: ${AUDIT_DB_URL:jdbc:h2:mem:audit_log;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE}
+    username: ${AUDIT_DB_USERNAME:sa}
+    password: ${AUDIT_DB_PASSWORD:}
   jpa:
     open-in-view: false
     hibernate:
@@ -17,6 +17,10 @@ spring:
     enabled: true
     locations: classpath:db/migration
     validate-migration-naming: true
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
 
 server:
   shutdown: graceful
@@ -30,3 +34,18 @@ management:
     health:
       probes:
         enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    url: /v3/api-docs/audit-log-service
+
+audit:
+  hash:
+    algorithm: SHA-256
+    genesis-hash: ${AUDIT_GENESIS_HASH:6f631d53cdc1f26efef6d78054e78948c5681f71267c3f9370cf7e5a7a134b39}
+    version: 1
+  payload:
+    algorithm: AES/GCM/NoPadding
+    key-reference: ${AUDIT_PAYLOAD_KEY_REFERENCE:local-development-key}
+    base64-key: ${AUDIT_PAYLOAD_ENCRYPTION_KEY}

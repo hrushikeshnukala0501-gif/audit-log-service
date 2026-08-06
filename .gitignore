@@ -2,6 +2,7 @@
 target/
 build/
 out/
+.m2/
 
 # IDE metadata
 .idea/

@@ -3,7 +3,7 @@
 ## Delivery sequence
 
 1. **Foundation (current commit):** capture scope, assumptions, execution plan, attestation template, and AI-use traceability.
-2. **Application scaffold:** create the Spring Boot project, dependency management, configuration, health endpoint, and local PostgreSQL development setup.
+2. **Application scaffold:** create the Spring Boot project, dependency management, configuration, health endpoint, and local H2 development setup.
 3. **Data model:** add a Flyway migration and immutable audit-event persistence model with indexes for the planned query paths.
 4. **Append and integrity:** implement canonical hashing, transactional append sequencing, the write API, and focused unit tests.
 5. **Query:** implement validated filtering and stable cursor pagination with integration tests.

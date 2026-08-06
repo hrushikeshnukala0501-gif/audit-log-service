@@ -4,7 +4,7 @@
 
 This architecture implements the assignment's core requirement: accept audit events, keep them append-only, query them efficiently, and detect modification of historical records. It is deliberately designed as a modular monolith first: one independently deployable service with a relational database. That keeps the integrity model and transaction boundary simple enough to validate end-to-end, while preserving clean seams for Scenario B extensions and the Scenario C reporting capability.
 
-The proposed implementation target is Java 21, Spring Boot 3, PostgreSQL, Flyway, and JSON over HTTPS. These are technology choices, not assignment requirements; the required behaviour remains independent of the framework.
+The proposed implementation target is Java 21, Spring Boot 3, H2, Flyway, and JSON over HTTPS. These are technology choices, not assignment requirements; the required behaviour remains independent of the framework. H2 is selected for the local prototype; a production deployment should use a managed, durable relational database.
 
 ## 2. High-level architecture
 
@@ -16,7 +16,7 @@ flowchart LR
     APP --> INT["Integrity services"]
     APP --> REPO["Repository layer"]
     INT --> REPO
-    REPO --> DB[("PostgreSQL")]
+    REPO --> DB[("H2")]
     API --> OBS["Observability: metrics, health, safe logs"]
 
     EXP["Independent export verifier"] -. "reads exported bundle" .-> BUNDLE["Verifiable export bundle"]
@@ -175,8 +175,8 @@ The hash is calculated before persistence, but against the sequence and predeces
 ```mermaid
 flowchart TD
     A["GET /audit/verify"] --> B["Stream events in sequence order"]
-    B --> C{"Expected next sequence?"}
-    C -- "No" --> X["Report SEQUENCE_GAP or ORDER_VIOLATION"]
+    B --> C{"Strictly increasing sequence?"}
+    C -- "No" --> X["Report ORDER_VIOLATION"]
     C -- "Yes" --> D{"previousHash equals expected?"}
     D -- "No" --> Y["Report PREDECESSOR_HASH_MISMATCH"]
     D -- "Yes" --> E["Recreate canonical protected content"]
@@ -188,7 +188,7 @@ flowchart TD
     H -- "No" --> I["Report chain intact"]
 ```
 
-Verification begins with the documented genesis value and expected first sequence. It returns the first inconsistency in storage order, along with sequence, event identifier where available, violation classification, and no sensitive payload content. Streaming avoids loading the entire log into memory. A protected verification operation should also emit metrics and an audit event about the verification request without recursively including its own result in the chain being evaluated.
+Verification begins with the documented genesis value and the earliest persisted sequence. Identity sequences can have legitimate gaps after a rolled-back insert, so verification requires strictly increasing order rather than numeric continuity. It returns the first inconsistency in storage order, along with sequence, event identifier where available, violation classification, and no sensitive payload content; it also compares the final result with the protected chain head so deletion of a tail record is detectable. Streaming avoids loading the entire log into memory. A protected verification operation should also emit metrics and an audit event about the verification request without recursively including its own result in the chain being evaluated.
 
 ## 8. Scenario B extension design
 
@@ -228,7 +228,7 @@ An export contains selected events in sequence order plus the hash scheme, genes
 | Decision | Rationale | Trade-off / limitation |
 | --- | --- | --- |
 | Modular monolith first | A single transaction boundary makes append ordering and verification easier to reason about and demonstrate. | Independent scaling of write/query/verification requires later extraction. |
-| PostgreSQL as system of record | Transactions, locking, durable ordering, JSON support, and local reproducibility suit the prototype. | Database-level privileges are not immutable storage. |
+| H2 as prototype system of record | Embedded startup and the H2 console make the assignment locally runnable without external infrastructure. | H2 is not a production-grade multi-node database; production should use a managed durable relational database. |
 | Global sequence-based chain | Gives an unambiguous append order and simple full-chain verification. | A single chain-head lock constrains write throughput and combines tenants. |
 | SHA-256 with versioned canonical input | Widely supported and adequate for tamper detection when inputs are deterministic. | Does not prevent a fully privileged attacker from recomputing the complete chain. |
 | Server-recorded UTC time | Provides a consistent, controlled audit timestamp. | It differs from real-world occurrence time, so caller-reported time needs a separate field. |
