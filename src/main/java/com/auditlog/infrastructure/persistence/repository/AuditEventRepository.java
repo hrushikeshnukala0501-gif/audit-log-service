@@ -25,4 +25,5 @@ public interface AuditEventRepository extends JpaRepository<AuditEventEntity, UU
     List<AuditEventEntity> findByRecordedAtLessThanEqualOrderByChainSequenceAsc(Instant recordedAt);
     List<AuditEventEntity> findByActorIdOrderByChainSequenceAsc(String actorId);
     List<AuditEventEntity> findByResourceIdOrderByChainSequenceAsc(String resourceId);
+    List<AuditEventEntity> findByResourceTypeAndResourceIdOrderByChainSequenceAsc(String resourceType, String resourceId);
 }
