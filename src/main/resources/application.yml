@@ -49,3 +49,6 @@ audit:
     algorithm: AES/GCM/NoPadding
     key-reference: ${AUDIT_PAYLOAD_KEY_REFERENCE:local-development-key}
     base64-key: ${AUDIT_PAYLOAD_ENCRYPTION_KEY}
+  retention:
+    archive-after: ${AUDIT_RETENTION_ARCHIVE_AFTER:P365D}
+    archive-uri-prefix: ${AUDIT_RETENTION_ARCHIVE_URI_PREFIX:logical://audit-archive}

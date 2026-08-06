@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
+import java.time.Instant;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -20,4 +21,6 @@ public interface AuditEventRepository extends JpaRepository<AuditEventEntity, UU
 
     @Query("select event from AuditEventEntity event left join fetch event.payload order by event.chainSequence asc")
     Stream<AuditEventEntity> streamAllWithPayloadByOrderByChainSequenceAsc();
+
+    List<AuditEventEntity> findByRecordedAtLessThanEqualOrderByChainSequenceAsc(Instant recordedAt);
 }
