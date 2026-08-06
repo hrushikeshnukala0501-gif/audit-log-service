@@ -1,0 +1,11 @@
+package com.auditlog.support.exception;
+
+public enum ErrorCode {
+    VALIDATION_FAILED,
+    MALFORMED_REQUEST,
+    INVALID_CURSOR,
+    AUDIT_EVENT_NOT_FOUND,
+    CHAIN_INTEGRITY_VIOLATION,
+    PERSISTENCE_CONFLICT,
+    INTERNAL_ERROR
+}
