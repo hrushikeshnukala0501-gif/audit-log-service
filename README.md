@@ -62,4 +62,8 @@ The H2 console connection details are the default JDBC URL in `src/main/resource
 - Java 21
 - Maven 3.9+
 
+## Validation
+
+Run `mvn clean test` after stopping processes that lock the project-local Maven cache. Full testing and manual Swagger procedures, including H2 tamper validation and Scenario A/B/C sequences, are in [docs/Testing.md](docs/Testing.md).
+
 The repository's `.mvn/maven.config` forces Maven to refresh cached dependency failures and uses the ignored project-local `.m2/repository` cache. This avoids IDE reload failures caused by an inaccessible global Maven repository.

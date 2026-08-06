@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 /**
@@ -67,7 +68,9 @@ public class AuditEventAppendService {
             throw new AuditLogException(ErrorCode.INTERNAL_ERROR, "Reserved chain sequence is not ahead of chain head");
         }
 
-        Instant recordedAt = Instant.now(utcClock);
+        // H2 (and common relational timestamp columns) persist microsecond precision.
+        // Hash the exact precision that will be stored so later verification is stable.
+        Instant recordedAt = Instant.now(utcClock).truncatedTo(ChronoUnit.MICROS);
         UUID eventId = UUID.randomUUID();
         ProtectedPayload protectedPayload = payloadProtector.protect(command.payload());
         String previousHash = chainHead.getHeadHash();
@@ -89,15 +92,15 @@ public class AuditEventAppendService {
                 hashProperties.algorithm(),
                 hashProperties.version());
 
-        auditEventRepository.saveAndFlush(auditEvent);
+        AuditEventEntity persistedAuditEvent = auditEventRepository.saveAndFlush(auditEvent);
         payloadRepository.save(new AuditEventPayloadEntity(
-                auditEvent,
+                persistedAuditEvent,
                 protectedPayload.algorithm(),
                 protectedPayload.keyReference(),
                 protectedPayload.nonce(),
                 protectedPayload.ciphertext(),
                 recordedAt));
-        chainHead.advanceTo(auditEvent, recordedAt);
+        chainHead.advanceTo(persistedAuditEvent, recordedAt);
 
         LOGGER.info("Appended audit event id={} sequence={} eventType={}", eventId, chainSequence, command.eventType());
         return new AppendedAuditEvent(
