@@ -24,7 +24,7 @@ OpenAPI JSON: `http://localhost:8080/v3/api-docs/audit-log-service`
 
 ## Observed validation result
 
-On 2026-08-06, `mvn test` attempted to compile 60 source files under Java 21 but failed before test discovery: `Fatal Error: Cannot close compiler resources` for the project-local `.m2/repository/.../spring-beans-6.2.19.jar`. This is a Windows file lock, not a reported source compilation failure. Stop IntelliJ/application processes that use the project-local Maven cache, then rerun the commands above. Do not report test counts until this passes.
+On 2026-08-06, after releasing the generated-build and Maven-cache locks, `mvn clean test` completed successfully under Java 21.0.12. Flyway validated and applied the H2 migration, Hibernate initialized, and the H2 console auto-configuration was available. The suite executed 2 integration tests: 2 passed, 0 failed, 0 errors, and 0 skipped. The run also exposed and corrected timestamp precision in hash inputs: server timestamps are now normalized to microseconds before hashing and persistence.
 
 ## Manual Scenario A procedure
 
@@ -53,5 +53,5 @@ On 2026-08-06, `mvn test` attempted to compile 60 source files under Java 21 but
 - No authentication/RBAC protects write, retention, redaction, export, or compliance endpoints.
 - Redaction is response projection, not per-field cryptographic erasure.
 - Non-contiguous exports/reports do not prove omitted global-chain links without signed checkpoints or intervening records.
-- No automated tests, coverage measurement, static analysis, vulnerability scan, or load test is currently configured.
-- Swagger/OpenAPI runtime loading remains unverified until the Maven file lock is resolved.
+- No coverage measurement, static analysis, vulnerability scan, or load test is currently configured.
+- Swagger/OpenAPI was initialized by SpringDoc during the integration-test application context, but browser rendering of Swagger UI remains a manual check.
