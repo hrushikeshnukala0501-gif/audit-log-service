@@ -17,6 +17,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.Instant;
 import java.util.List;
@@ -44,6 +45,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handleMalformedRequest(Exception exception, HttpServletRequest request) {
         LOGGER.warn("Malformed request for {} {}", request.getMethod(), request.getRequestURI());
         return error(HttpStatus.BAD_REQUEST, ErrorCode.MALFORMED_REQUEST, "Request is malformed", List.of(), request);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleMissingResource(NoResourceFoundException exception, HttpServletRequest request) {
+        return error(HttpStatus.NOT_FOUND, ErrorCode.AUDIT_EVENT_NOT_FOUND, "Requested resource was not found", List.of(), request);
     }
 
     @ExceptionHandler(AuditLogException.class)

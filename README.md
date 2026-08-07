@@ -44,6 +44,9 @@ Once started:
 - Swagger UI: `http://localhost:8080/swagger-ui.html`
 - H2 Console: `http://localhost:8080/h2-console`
 - Health: `http://localhost:8080/actuator/health`
+- OpenAPI JSON: `http://localhost:8080/v3/api-docs/audit-log-service`
+
+Use Swagger UI's **Try it out** button. Enter only the endpoint URL/path in the request URL field; add `Content-Type: application/json` in the request header section and the JSON request in the body section.
 
 The H2 console connection details are the default JDBC URL in `src/main/resources/application.yml`, user `sa`, and a blank password unless overridden.
 

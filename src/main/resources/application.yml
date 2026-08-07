@@ -38,7 +38,11 @@ management:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
-    url: /v3/api-docs/audit-log-service
+    operations-sorter: alpha
+    tags-sorter: alpha
+    try-it-out-enabled: true
+    display-request-duration: true
+    persist-authorization: false
 
 audit:
   hash:
