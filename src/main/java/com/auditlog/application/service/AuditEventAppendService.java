@@ -1,6 +1,9 @@
 package com.auditlog.application.service;
 
 import com.auditlog.application.command.AppendAuditEventCommand;
+import com.auditlog.application.port.HashGenerator;
+import com.auditlog.application.port.PayloadProtector;
+import com.auditlog.application.port.ProtectedPayload;
 import com.auditlog.application.result.AppendedAuditEvent;
 import com.auditlog.config.AuditHashProperties;
 import com.auditlog.infrastructure.persistence.entity.AuditEventEntity;
@@ -11,7 +14,6 @@ import com.auditlog.infrastructure.persistence.repository.AuditEventRepository;
 import com.auditlog.infrastructure.persistence.repository.ChainHeadRepository;
 import com.auditlog.support.exception.AuditLogException;
 import com.auditlog.support.exception.ErrorCode;
-import com.auditlog.support.utility.Sha256HashGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -33,9 +35,9 @@ public class AuditEventAppendService {
     private final ChainHeadRepository chainHeadRepository;
     private final AuditEventRepository auditEventRepository;
     private final AuditEventPayloadRepository payloadRepository;
-    private final AesGcmPayloadProtector payloadProtector;
+    private final PayloadProtector payloadProtector;
     private final AuditEventHashInputFactory hashInputFactory;
-    private final Sha256HashGenerator hashGenerator;
+    private final HashGenerator hashGenerator;
     private final AuditHashProperties hashProperties;
     private final Clock utcClock;
 
@@ -43,9 +45,9 @@ public class AuditEventAppendService {
             ChainHeadRepository chainHeadRepository,
             AuditEventRepository auditEventRepository,
             AuditEventPayloadRepository payloadRepository,
-            AesGcmPayloadProtector payloadProtector,
+            PayloadProtector payloadProtector,
             AuditEventHashInputFactory hashInputFactory,
-            Sha256HashGenerator hashGenerator,
+            HashGenerator hashGenerator,
             AuditHashProperties hashProperties,
             Clock utcClock) {
         this.chainHeadRepository = chainHeadRepository;

@@ -40,9 +40,11 @@ com.auditlog
 ```
 
 The base package is `com.auditlog`. Earlier documents referring to
-`com.example.auditlog`, `domain`, `application.port`, or separate crypto/export
-adapters did not describe this repository and must not be used as an
-implementation claim.
+`com.example.auditlog`, `domain`, or separate export adapters did not describe
+this repository and must not be used as an implementation claim. The limited
+`application.port` package contains the payload-protection and hash-generation
+contracts; their local AES-GCM and SHA-256 implementations live in
+`infrastructure.crypto`.
 
 ## 3. Actual dependency model
 
@@ -51,6 +53,8 @@ flowchart LR
     Client --> API["api controllers / DTOs"]
     API --> APP["application services"]
     APP --> PERSIST["infrastructure.persistence entities / repositories"]
+    APP --> CRYPTO["application crypto contracts"]
+    CRYPTO --> CRYPTO_IMPL["infrastructure.crypto implementations"]
     APP --> SUPPORT["support utilities and exceptions"]
     APP --> CONFIG["typed configuration properties"]
     PERSIST --> DB[("H2 via Flyway")]
@@ -75,11 +79,16 @@ enforce boundaries that the current code actually satisfies:
 | Persistence classes must not depend on API classes. | JPA mappings and repositories remain reusable without web concerns. |
 | Support classes must not depend on API, application, persistence, or configuration packages. | Common utilities and error types remain low-level dependencies. |
 | Configuration must not depend on API controllers. | Spring wiring does not take ownership of HTTP endpoint behaviour. |
+| Application services must not depend on infrastructure crypto implementations. | Encryption and hashing providers can change without changing the use cases. |
 
 The rules intentionally do **not** prohibit application-to-persistence or
 application-to-DTO dependencies because those dependencies exist today. Making
 such a rule pass would require a separate ports-and-adapters refactor; it is not
-being implied by this architecture document.
+being implied by this architecture document. Crypto is the deliberate exception:
+application services depend on the small `HashGenerator` and `PayloadProtector`
+contracts, while Spring injects the local implementations. A KMS-backed provider
+can replace the payload protector without changing append, query, or verification
+use cases.
 
 ## 5. Core write and integrity flow
 

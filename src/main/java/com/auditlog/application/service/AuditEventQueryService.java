@@ -1,6 +1,7 @@
 package com.auditlog.application.service;
 
 import com.auditlog.api.dto.AuditEventResponse;
+import com.auditlog.application.port.PayloadProtector;
 import com.auditlog.application.query.AuditEventSearchCriteria;
 import com.auditlog.application.query.SortDirection;
 import com.auditlog.application.result.AuditEventPage;
@@ -29,14 +30,14 @@ public class AuditEventQueryService {
 
     private final AuditEventRepository auditEventRepository;
     private final AuditEventPayloadRepository payloadRepository;
-    private final AesGcmPayloadProtector payloadProtector;
+    private final PayloadProtector payloadProtector;
     private final PayloadRedactionRepository redactions;
     private final PayloadRedactionProjector redactionProjector;
 
     public AuditEventQueryService(
             AuditEventRepository auditEventRepository,
             AuditEventPayloadRepository payloadRepository,
-            AesGcmPayloadProtector payloadProtector, PayloadRedactionRepository redactions, PayloadRedactionProjector redactionProjector) {
+            PayloadProtector payloadProtector, PayloadRedactionRepository redactions, PayloadRedactionProjector redactionProjector) {
         this.auditEventRepository = auditEventRepository;
         this.payloadRepository = payloadRepository;
         this.payloadProtector = payloadProtector;

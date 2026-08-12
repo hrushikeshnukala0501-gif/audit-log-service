@@ -17,8 +17,8 @@ import java.nio.charset.StandardCharsets;
 
 @Service
 public class RetentionArchiveService {
-    private final AuditEventRepository events; private final ArchiveManifestRepository manifests; private final AuditRetentionProperties retention; private final Sha256HashGenerator hashes; private final Clock clock;
-    public RetentionArchiveService(AuditEventRepository events, ArchiveManifestRepository manifests, AuditRetentionProperties retention, Sha256HashGenerator hashes, Clock clock) { this.events=events; this.manifests=manifests; this.retention=retention; this.hashes=hashes; this.clock=clock; }
+    private final AuditEventRepository events; private final ArchiveManifestRepository manifests; private final AuditRetentionProperties retention; private final HashGenerator hashes; private final Clock clock;
+    public RetentionArchiveService(AuditEventRepository events, ArchiveManifestRepository manifests, AuditRetentionProperties retention, HashGenerator hashes, Clock clock) { this.events=events; this.manifests=manifests; this.retention=retention; this.hashes=hashes; this.clock=clock; }
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public ArchivedAuditRange archiveEligible(String archivedBy) {
         Instant now=Instant.now(clock);

@@ -40,4 +40,8 @@ class ArchitectureRulesTest {
             .that().resideInAPackage("..config..")
             .should().dependOnClassesThat().resideInAPackage("..api.controller..");
 
+    @ArchTest
+    static final ArchRule application_services_depend_on_crypto_contracts_not_implementations = noClasses()
+            .that().resideInAPackage("..application.service..")
+            .should().dependOnClassesThat().resideInAPackage("..infrastructure.crypto..");
 }

@@ -1,8 +1,9 @@
-package com.auditlog.application.service;
+package com.auditlog.infrastructure.crypto;
 
+import com.auditlog.application.port.PayloadProtectionException;
+import com.auditlog.application.port.ProtectedPayload;
 import com.auditlog.config.AuditPayloadProperties;
 import com.auditlog.support.utility.CanonicalJsonSerializer;
-import com.auditlog.support.utility.Sha256HashGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;

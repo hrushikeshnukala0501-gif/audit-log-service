@@ -1,6 +1,7 @@
 package com.auditlog.application.service;
 
 import com.auditlog.application.command.AppendAuditEventCommand;
+import com.auditlog.application.port.ProtectedPayload;
 import com.auditlog.config.AuditHashProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;

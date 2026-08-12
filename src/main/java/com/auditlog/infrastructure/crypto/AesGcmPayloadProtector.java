@@ -1,8 +1,11 @@
-package com.auditlog.application.service;
+package com.auditlog.infrastructure.crypto;
 
+import com.auditlog.application.port.HashGenerator;
+import com.auditlog.application.port.PayloadProtectionException;
+import com.auditlog.application.port.PayloadProtector;
+import com.auditlog.application.port.ProtectedPayload;
 import com.auditlog.config.AuditPayloadProperties;
 import com.auditlog.support.utility.CanonicalJsonSerializer;
-import com.auditlog.support.utility.Sha256HashGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
@@ -16,24 +19,25 @@ import java.security.SecureRandom;
 import java.util.Base64;
 
 /**
- * Encrypts canonical payload bytes using AES-GCM. Keys are provided externally and are never persisted.
+ * Local AES-GCM implementation of the application payload-protection contract.
+ * Keys are supplied externally and are never persisted.
  */
 @Component
-public class AesGcmPayloadProtector {
+public class AesGcmPayloadProtector implements PayloadProtector {
 
     private static final int GCM_TAG_LENGTH_BITS = 128;
     private static final int GCM_NONCE_LENGTH_BYTES = 12;
 
     private final AuditPayloadProperties properties;
     private final CanonicalJsonSerializer canonicalJsonSerializer;
-    private final Sha256HashGenerator hashGenerator;
+    private final HashGenerator hashGenerator;
     private final ObjectMapper objectMapper;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AesGcmPayloadProtector(
             AuditPayloadProperties properties,
             CanonicalJsonSerializer canonicalJsonSerializer,
-            Sha256HashGenerator hashGenerator,
+            HashGenerator hashGenerator,
             ObjectMapper objectMapper) {
         this.properties = properties;
         this.canonicalJsonSerializer = canonicalJsonSerializer;
@@ -41,6 +45,7 @@ public class AesGcmPayloadProtector {
         this.objectMapper = objectMapper;
     }
 
+    @Override
     public ProtectedPayload protect(JsonNode payload) {
         byte[] plaintext = canonicalJsonSerializer.serialize(payload);
         byte[] nonce = new byte[GCM_NONCE_LENGTH_BYTES];
@@ -55,6 +60,7 @@ public class AesGcmPayloadProtector {
                 hashGenerator.hash(ciphertext));
     }
 
+    @Override
     public JsonNode unprotect(String algorithm, byte[] nonce, byte[] ciphertext) {
         if (!properties.algorithm().equals(algorithm)) {
             throw new PayloadProtectionException("Unsupported audit payload encryption algorithm", null);

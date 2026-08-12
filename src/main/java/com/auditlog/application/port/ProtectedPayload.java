@@ -1,7 +1,7 @@
-package com.auditlog.application.service;
+package com.auditlog.application.port;
 
 /**
- * Encrypted representation used for persistence. It never exposes plaintext outside the append transaction.
+ * Encrypted payload material returned by a {@link PayloadProtector} for persistence.
  */
 public record ProtectedPayload(
         String algorithm,

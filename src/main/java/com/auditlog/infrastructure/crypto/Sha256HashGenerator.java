@@ -1,6 +1,8 @@
-package com.auditlog.support.utility;
+package com.auditlog.infrastructure.crypto;
 
+import com.auditlog.application.port.HashGenerator;
 import com.auditlog.support.constant.AuditHashConstants;
+import com.auditlog.support.utility.CanonicalJsonSerializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Component;
 
@@ -9,10 +11,10 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 
 /**
- * Stateless SHA-256 helper. A new MessageDigest is created per call because it is not thread-safe.
+ * Local SHA-256 implementation of the application integrity-hash contract.
  */
 @Component
-public class Sha256HashGenerator {
+public class Sha256HashGenerator implements HashGenerator {
 
     private final CanonicalJsonSerializer canonicalJsonSerializer;
 
@@ -20,10 +22,12 @@ public class Sha256HashGenerator {
         this.canonicalJsonSerializer = canonicalJsonSerializer;
     }
 
+    @Override
     public String hash(JsonNode value) {
         return hash(canonicalJsonSerializer.serialize(value));
     }
 
+    @Override
     public String hash(byte[] value) {
         try {
             MessageDigest digest = MessageDigest.getInstance(AuditHashConstants.SHA_256);
@@ -33,6 +37,7 @@ public class Sha256HashGenerator {
         }
     }
 
+    @Override
     public boolean isValidHash(String value) {
         return value != null && value.matches("^[0-9a-f]{" + AuditHashConstants.SHA_256_HEX_LENGTH + "}$");
     }

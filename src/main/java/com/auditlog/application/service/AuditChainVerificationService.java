@@ -1,7 +1,9 @@
 package com.auditlog.application.service;
 
 import com.auditlog.application.result.ChainVerificationResult;
-import com.auditlog.support.utility.Sha256HashGenerator;
+import com.auditlog.application.port.HashGenerator;
+import com.auditlog.application.port.PayloadProtectionException;
+import com.auditlog.application.port.PayloadProtector;
 import com.auditlog.config.AuditHashProperties;
 import com.auditlog.infrastructure.persistence.entity.AuditEventEntity;
 import com.auditlog.infrastructure.persistence.entity.AuditEventPayloadEntity;
@@ -33,9 +35,9 @@ public class AuditChainVerificationService {
 
     private final AuditEventRepository auditEventRepository;
     private final ChainHeadRepository chainHeadRepository;
-    private final AesGcmPayloadProtector payloadProtector;
+    private final PayloadProtector payloadProtector;
     private final AuditEventHashInputFactory hashInputFactory;
-    private final Sha256HashGenerator hashGenerator;
+    private final HashGenerator hashGenerator;
     private final AuditHashProperties hashProperties;
     private final Clock utcClock;
 
@@ -45,9 +47,9 @@ public class AuditChainVerificationService {
     public AuditChainVerificationService(
             AuditEventRepository auditEventRepository,
             ChainHeadRepository chainHeadRepository,
-            AesGcmPayloadProtector payloadProtector,
+            PayloadProtector payloadProtector,
             AuditEventHashInputFactory hashInputFactory,
-            Sha256HashGenerator hashGenerator,
+            HashGenerator hashGenerator,
             AuditHashProperties hashProperties,
             Clock utcClock) {
         this.auditEventRepository = auditEventRepository;
