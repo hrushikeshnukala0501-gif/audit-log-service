@@ -14,6 +14,9 @@ public record AuditEventCursor(long chainSequence, SortDirection sortDirection) 
 
     public static AuditEventCursor decode(String value, SortDirection expectedDirection) {
         try {
+            if (value == null) {
+                throw invalidCursor();
+            }
             String decoded = new String(Base64.getUrlDecoder().decode(value), StandardCharsets.UTF_8);
             String[] parts = decoded.split(":", -1);
             if (parts.length != 2) {

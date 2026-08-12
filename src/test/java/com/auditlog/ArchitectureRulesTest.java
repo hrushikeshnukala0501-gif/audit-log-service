@@ -2,6 +2,7 @@ package com.auditlog;
 
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
+import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.lang.ArchRule;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
@@ -10,7 +11,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
  * Prevents the current, documented package boundaries from drifting unnoticed.
  * These rules deliberately do not claim a ports-and-adapters architecture.
  */
-@AnalyzeClasses(packages = "com.auditlog")
+@AnalyzeClasses(packages = "com.auditlog", importOptions = ImportOption.DoNotIncludeTests.class)
 class ArchitectureRulesTest {
 
     @ArchTest
