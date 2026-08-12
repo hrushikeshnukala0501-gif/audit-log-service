@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: audit_log
+      POSTGRES_USER: audit_service
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your shell or .env file}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U audit_service -d audit_log"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  audit-log-service:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres
+      AUDIT_DB_URL: jdbc:postgresql://postgres:5432/audit_log
+      AUDIT_DB_USERNAME: audit_service
+      AUDIT_DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your shell or .env file}
+      AUDIT_PAYLOAD_ENCRYPTION_KEY: ${AUDIT_PAYLOAD_ENCRYPTION_KEY:?Set AUDIT_PAYLOAD_ENCRYPTION_KEY in your shell or .env file}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres-data:

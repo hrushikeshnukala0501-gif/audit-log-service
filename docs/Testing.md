@@ -6,25 +6,33 @@ Validate Scenario A append/query/verification, Scenario B retention/redaction/ex
 
 ## Current automated-test status
 
-There are currently no `src/test` sources. Automated integration coverage is therefore **not yet implemented**. The planned approach is `@SpringBootTest` with `@AutoConfigureMockMvc` and the existing embedded H2/Flyway setup; no additional test stack is required.
-
-The first required automated suite should cover: genesis and predecessor links; validation/malformed JSON; combined filters/cursor paging; direct H2 tampering followed by verification; retention replay/idempotency; top-level and nested redactions; actor/resource export selector validation; and compliance account filtering. A concurrent-write test should assert distinct sequences and predecessor links, subject to H2 transaction scheduling reliability.
+The repository contains focused unit tests, H2/Spring Boot integration tests, direct-datastore tamper-detection tests, architecture tests, and a concurrent-append test. The last successful H2 verification before adding the environment work ran 40 tests with 0 failures, 0 errors, and 0 skipped. The test suite uses the embedded H2/Flyway configuration; PostgreSQL migration and runtime wiring are provided for Docker Compose, but PostgreSQL integration tests are not yet part of CI.
 
 ## Commands
 
-```powershell
-$env:JAVA_HOME='C:\Users\Saikr\.jdks\ms-21.0.12'
-$env:Path="$env:JAVA_HOME\bin;$env:Path"
-mvn clean test
-mvn spring-boot:run
+```text
+./mvnw verify                 # macOS/Linux
+mvnw.cmd verify               # Windows
+./mvnw spring-boot:run        # macOS/Linux
+mvnw.cmd spring-boot:run      # Windows
 ```
+
+The Maven Wrapper downloads the project-pinned Maven version when needed. Java 21 must be available on `PATH`.
+
+To run the production-like PostgreSQL container stack, set non-committed local values for `POSTGRES_PASSWORD` and `AUDIT_PAYLOAD_ENCRYPTION_KEY`, then run:
+
+```text
+docker compose up --build
+```
+
+The Compose application uses the `postgres` Spring profile and applies the PostgreSQL Flyway migration. Stop it with `docker compose down`; add `-v` only when intentionally deleting the local PostgreSQL volume.
 
 Swagger UI: `http://localhost:8080/swagger-ui.html`  
 OpenAPI JSON: `http://localhost:8080/v3/api-docs/audit-log-service`
 
 ## Observed validation result
 
-On 2026-08-06, after releasing the generated-build and Maven-cache locks, `mvn clean test` completed successfully under Java 21.0.12. Flyway validated and applied the H2 migration, Hibernate initialized, and the H2 console auto-configuration was available. The suite executed 2 integration tests: 2 passed, 0 failed, 0 errors, and 0 skipped. The run also exposed and corrected timestamp precision in hash inputs: server timestamps are now normalized to microseconds before hashing and persistence.
+On 2026-08-12, `mvn clean verify` completed successfully under Java 21.0.12. Flyway validated and applied the H2 migration, Hibernate initialized, and the suite executed 40 tests: 40 passed, 0 failed, 0 errors, and 0 skipped. The run includes hash-chain tamper cases, risk-bearing unit tests, architecture checks, Scenario A-C integration flows, concurrent append validation, and bounded verification tests. The suite also previously exposed and corrected timestamp precision in hash inputs: server timestamps are normalized to microseconds before hashing and persistence.
 
 ## Manual Scenario A procedure
 
@@ -53,5 +61,5 @@ On 2026-08-06, after releasing the generated-build and Maven-cache locks, `mvn c
 - No authentication/RBAC protects write, retention, redaction, export, or compliance endpoints.
 - Redaction is response projection, not per-field cryptographic erasure.
 - Non-contiguous exports/reports do not prove omitted global-chain links without signed checkpoints or intervening records.
-- No coverage measurement, static analysis, vulnerability scan, or load test is currently configured.
+- JaCoCo report generation and a GitHub Actions `verify` workflow are configured. No minimum coverage threshold, static analysis, vulnerability scan, or load test is configured.
 - Swagger/OpenAPI was initialized by SpringDoc during the integration-test application context, but browser rendering of Swagger UI remains a manual check.

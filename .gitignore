@@ -3,6 +3,7 @@ target/
 build/
 out/
 .m2/
+coverage/
 
 # IDE metadata
 .idea/

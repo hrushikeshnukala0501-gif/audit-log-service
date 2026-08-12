@@ -1,0 +1,9 @@
+.git
+.github
+.idea
+.m2
+target
+build
+out
+*.log
+.env
