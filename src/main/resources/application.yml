@@ -19,7 +19,7 @@ spring:
     validate-migration-naming: true
   h2:
     console:
-      enabled: true
+      enabled: false
       path: /h2-console
 
 server:
@@ -36,7 +36,10 @@ management:
         enabled: true
 
 springdoc:
+  api-docs:
+    enabled: false
   swagger-ui:
+    enabled: false
     path: /swagger-ui.html
     operations-sorter: alpha
     tags-sorter: alpha
@@ -56,3 +59,5 @@ audit:
   retention:
     archive-after: ${AUDIT_RETENTION_ARCHIVE_AFTER:P365D}
     archive-uri-prefix: ${AUDIT_RETENTION_ARCHIVE_URI_PREFIX:logical://audit-archive}
+  security:
+    api-key: ${AUDIT_API_KEY}

@@ -1,0 +1,10 @@
+spring:
+  h2:
+    console:
+      enabled: true
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true

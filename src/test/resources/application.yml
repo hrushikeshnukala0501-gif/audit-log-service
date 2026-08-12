@@ -1,0 +1,39 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:audit_log;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    locations: classpath:db/migration/h2
+  h2:
+    console:
+      enabled: false
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+audit:
+  hash:
+    algorithm: SHA-256
+    genesis-hash: 6f631d53cdc1f26efef6d78054e78948c5681f71267c3f9370cf7e5a7a134b39
+    version: 1
+  payload:
+    algorithm: AES/GCM/NoPadding
+    key-reference: test-key
+    base64-key: AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=
+  retention:
+    archive-after: P365D
+    archive-uri-prefix: logical://audit-archive
+  security:
+    api-key: test-api-key

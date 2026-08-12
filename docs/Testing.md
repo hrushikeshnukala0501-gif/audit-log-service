@@ -27,16 +27,30 @@ docker compose up --build
 
 The Compose application uses the `postgres` Spring profile and applies the PostgreSQL Flyway migration. Stop it with `docker compose down`; add `-v` only when intentionally deleting the local PostgreSQL volume.
 
+## Authentication and development tools
+
+All `/api/v1/**` calls require an `X-API-Key` header containing the value of
+`AUDIT_API_KEY`. Missing or invalid keys return the standard `401` error
+envelope. Swagger UI and the H2 Console are disabled by default; start with the
+`dev` profile to enable them locally, then use Swagger's **Authorize** action to
+set the API key once for all requests.
+
+```text
+SPRING_PROFILES_ACTIVE=dev
+AUDIT_API_KEY=local-development-api-key
+```
+
 Swagger UI: `http://localhost:8080/swagger-ui.html`  
 OpenAPI JSON: `http://localhost:8080/v3/api-docs/audit-log-service`
 
 ## Observed validation result
 
-On 2026-08-12, `mvn clean verify` completed successfully under Java 21.0.12. Flyway validated and applied the H2 migration, Hibernate initialized, and the suite executed 40 tests: 40 passed, 0 failed, 0 errors, and 0 skipped. The run includes hash-chain tamper cases, risk-bearing unit tests, architecture checks, Scenario A-C integration flows, concurrent append validation, and bounded verification tests. The suite also previously exposed and corrected timestamp precision in hash inputs: server timestamps are normalized to microseconds before hashing and persistence.
+On 2026-08-12, `mvnw.cmd clean verify` completed successfully under Java 21.0.12. Flyway validated and applied the H2 migration, Hibernate initialized, and the suite executed 46 tests: 46 passed, 0 failed, 0 errors, and 0 skipped. The run includes hash-chain tamper cases, risk-bearing unit tests, architecture checks, Scenario A-C integration flows, concurrent append validation, bounded verification, API-key authentication, and default/dev tool-exposure tests. The suite also previously exposed and corrected timestamp precision in hash inputs: server timestamps are normalized to microseconds before hashing and persistence.
 
 ## Manual Scenario A procedure
 
-1. POST three fictional events to `/api/v1/audit/events`.
+1. Start with `SPRING_PROFILES_ACTIVE=dev` and set `AUDIT_API_KEY`; include that value as `X-API-Key` on every API call.
+2. POST three fictional events to `/api/v1/audit/events`.
 2. Query unfiltered and with actor, resource type/ID, event type, time, combined filters, cursors, and both sort directions.
 3. Call `/api/v1/audit/verify` and confirm `intact=true`.
 4. In H2 Console (`/h2-console`), run `UPDATE audit_event SET actor_id='tampered' WHERE chain_sequence=1`.
@@ -58,7 +72,7 @@ On 2026-08-12, `mvn clean verify` completed successfully under Java 21.0.12. Fly
 ## Limitations and production risks
 
 - H2 and in-memory data are local-prototype only; use a durable managed database in production.
-- No authentication/RBAC protects write, retention, redaction, export, or compliance endpoints.
+- A single shared API key protects operational APIs. Per-user identity, authorization roles, expiry, key rotation, and secret-manager integration are not implemented.
 - Redaction is response projection, not per-field cryptographic erasure.
 - Non-contiguous exports/reports do not prove omitted global-chain links without signed checkpoints or intervening records.
 - JaCoCo report generation and a GitHub Actions `verify` workflow are configured. No minimum coverage threshold, static analysis, vulnerability scan, or load test is configured.

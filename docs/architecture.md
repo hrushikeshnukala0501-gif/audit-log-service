@@ -164,11 +164,13 @@ events.
 
 ## 9. Security and production gaps
 
-The prototype has no authentication or authorization. Swagger UI and the H2
-console are enabled in the default configuration. The encryption key is supplied
-through configuration rather than a KMS. No database runtime-role permissions,
-external immutable archive store, signed checkpoints, Docker packaging, CI,
-coverage gate, or static-analysis gate is implemented.
+Operational APIs use a configured `X-API-Key`; invalid or absent keys receive a
+payload-safe `401` response. Swagger UI and the H2 console are disabled by
+default and enabled only by the `dev` profile. This minimal service credential
+has no per-user identity, authorization roles, expiry, rotation, or secret
+manager integration. The encryption key is also supplied through configuration
+rather than a KMS. No database runtime-role permissions, external immutable
+archive store, or signed checkpoints are implemented.
 
 These are intentionally listed as gaps, not as capabilities of the current
 service. The tamper-evident hash chain detects changes when verification is run;

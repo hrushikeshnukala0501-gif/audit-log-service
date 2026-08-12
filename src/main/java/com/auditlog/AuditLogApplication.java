@@ -3,6 +3,7 @@ package com.auditlog;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
 
 /**
  * Entry point for the Audit Log Service application.
@@ -10,7 +11,7 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
  * <p>The root package intentionally sits above API, application, domain, and
  * infrastructure packages+++++++++ so Spring component scanning has one explicit boundary.</p>
  */
-@SpringBootApplication
+@SpringBootApplication(exclude = UserDetailsServiceAutoConfiguration.class)
 @ConfigurationPropertiesScan
 public class AuditLogApplication {
 
