@@ -1,17 +1,20 @@
 package com.auditlog.application.service;
 
 import com.auditlog.application.result.ChainVerificationResult;
+import com.auditlog.support.utility.Sha256HashGenerator;
 import com.auditlog.config.AuditHashProperties;
 import com.auditlog.infrastructure.persistence.entity.AuditEventEntity;
 import com.auditlog.infrastructure.persistence.entity.AuditEventPayloadEntity;
 import com.auditlog.infrastructure.persistence.entity.ChainHeadEntity;
 import com.auditlog.infrastructure.persistence.repository.AuditEventRepository;
 import com.auditlog.infrastructure.persistence.repository.ChainHeadRepository;
-import com.auditlog.support.utility.Sha256HashGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -26,6 +29,7 @@ import java.util.stream.Stream;
 public class AuditChainVerificationService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AuditChainVerificationService.class);
+    private static final int PERSISTENCE_CONTEXT_CLEAR_INTERVAL = 100;
 
     private final AuditEventRepository auditEventRepository;
     private final ChainHeadRepository chainHeadRepository;
@@ -34,6 +38,9 @@ public class AuditChainVerificationService {
     private final Sha256HashGenerator hashGenerator;
     private final AuditHashProperties hashProperties;
     private final Clock utcClock;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public AuditChainVerificationService(
             AuditEventRepository auditEventRepository,
@@ -54,34 +61,86 @@ public class AuditChainVerificationService {
 
     @Transactional(readOnly = true)
     public ChainVerificationResult verify() {
-        Instant verifiedAt = Instant.now(utcClock);
-        String expectedPreviousHash = hashProperties.genesisHash();
-        long previousSequence = 0;
+        return verify(null, null);
+    }
 
-        try (Stream<AuditEventEntity> eventStream = auditEventRepository.streamAllWithPayloadByOrderByChainSequenceAsc()) {
+    @Transactional(readOnly = true)
+    public ChainVerificationResult verify(Long fromSequence, Long toSequence) {
+        validateRange(fromSequence, toSequence);
+        Instant verifiedAt = Instant.now(utcClock);
+        boolean completeChainVerification = fromSequence == null && toSequence == null;
+        long startSequence = fromSequence == null ? 1 : fromSequence;
+        VerificationStart start = startFor(startSequence);
+        String expectedPreviousHash = start.expectedPreviousHash();
+        long previousSequence = start.previousSequence();
+        Long verifiedFromSequence = null;
+        int verifiedEventCount = 0;
+
+        try (Stream<AuditEventEntity> eventStream = streamEvents(completeChainVerification, startSequence, toSequence)) {
             Iterator<AuditEventEntity> events = eventStream.iterator();
             while (events.hasNext()) {
                 AuditEventEntity event = events.next();
+                if (verifiedFromSequence == null) {
+                    verifiedFromSequence = event.getChainSequence();
+                }
                 ChainVerificationResult.Violation violation = verifyEvent(
                         event, event.getPayload(), expectedPreviousHash, previousSequence);
                 if (violation != null) {
                     LOGGER.warn("Audit chain verification failed type={} eventId={} sequence={}",
                             violation.type(), violation.eventId(), violation.chainSequence());
-                    return invalid(previousSequence, violation, verifiedAt);
+                    return invalid(completeChainVerification, verifiedFromSequence, previousSequence, violation, verifiedAt);
                 }
                 expectedPreviousHash = event.getContentHash();
                 previousSequence = event.getChainSequence();
+                verifiedEventCount++;
+                if (verifiedEventCount % PERSISTENCE_CONTEXT_CLEAR_INTERVAL == 0) {
+                    entityManager.clear();
+                }
             }
         }
 
-        ChainVerificationResult.Violation headViolation = verifyChainHead(previousSequence, expectedPreviousHash);
-        if (headViolation != null) {
-            LOGGER.warn("Audit chain verification failed type={}", headViolation.type());
-            return invalid(previousSequence, headViolation, verifiedAt);
+        if (completeChainVerification) {
+            ChainVerificationResult.Violation headViolation = verifyChainHead(previousSequence, expectedPreviousHash);
+            if (headViolation != null) {
+                LOGGER.warn("Audit chain verification failed type={}", headViolation.type());
+                return invalid(true, verifiedFromSequence, previousSequence, headViolation, verifiedAt);
+            }
         }
 
-        LOGGER.info("Audit chain verification succeeded through sequence={}", previousSequence);
-        return new ChainVerificationResult(true, previousSequence, null, verifiedAt);
+        LOGGER.info("Audit chain verification succeeded completeChain={} fromSequence={} throughSequence={}",
+                completeChainVerification, verifiedFromSequence, previousSequence);
+        return new ChainVerificationResult(
+                true,
+                completeChainVerification,
+                verifiedFromSequence,
+                previousSequence,
+                null,
+                verifiedAt);
+    }
+
+    private void validateRange(Long fromSequence, Long toSequence) {
+        if (fromSequence != null && fromSequence < 1
+                || toSequence != null && toSequence < 1
+                || fromSequence != null && toSequence != null && fromSequence > toSequence) {
+            throw new com.auditlog.support.exception.AuditLogException(
+                    com.auditlog.support.exception.ErrorCode.MALFORMED_REQUEST,
+                    "Verification sequence range is invalid");
+        }
+    }
+
+    private VerificationStart startFor(long startSequence) {
+        if (startSequence == 1) {
+            return new VerificationStart(hashProperties.genesisHash(), 0);
+        }
+        return auditEventRepository.findTopByChainSequenceLessThanOrderByChainSequenceDesc(startSequence)
+                .map(event -> new VerificationStart(event.getContentHash(), event.getChainSequence()))
+                .orElse(new VerificationStart(hashProperties.genesisHash(), 0));
+    }
+
+    private Stream<AuditEventEntity> streamEvents(boolean completeChainVerification, long fromSequence, Long toSequence) {
+        return completeChainVerification
+                ? auditEventRepository.streamAllWithPayloadByOrderByChainSequenceAsc()
+                : auditEventRepository.streamRangeWithPayloadByChainSequence(fromSequence, toSequence);
     }
 
     private ChainVerificationResult.Violation verifyEvent(
@@ -143,13 +202,24 @@ public class AuditChainVerificationService {
     }
 
     private ChainVerificationResult invalid(
+            boolean completeChainVerification,
+            Long verifiedFromSequence,
             long verifiedThroughSequence,
             ChainVerificationResult.Violation violation,
             Instant verifiedAt) {
-        return new ChainVerificationResult(false, verifiedThroughSequence, violation, verifiedAt);
+        return new ChainVerificationResult(
+                false,
+                completeChainVerification,
+                verifiedFromSequence,
+                verifiedThroughSequence,
+                violation,
+                verifiedAt);
     }
 
     private ChainVerificationResult.Violation violation(AuditEventEntity event, String type, String message) {
         return new ChainVerificationResult.Violation(event.getEventId(), event.getChainSequence(), type, message);
+    }
+
+    private record VerificationStart(String expectedPreviousHash, long previousSequence) {
     }
 }

@@ -99,7 +99,67 @@ class AuditLogScenarioIntegrationTest {
 
         mockMvc.perform(get("/api/v1/audit/verify"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.intact").value(true));
+                .andExpect(jsonPath("$.data.intact").value(true))
+                .andExpect(jsonPath("$.data.completeChainVerification").value(true))
+                .andExpect(jsonPath("$.data.verifiedThroughSequence").value(2));
+    }
+
+    @Test
+    void verifiesBoundedRangeWithPredecessorContinuity() throws Exception {
+        appendEvent("RECORD_CREATED", "advisor-1", "account-1", payload("field", "address"));
+        appendEvent("RECORD_UPDATED", "advisor-1", "account-1", payload("field", "email"));
+        appendEvent("RECORD_UPDATED", "advisor-1", "account-1", payload("field", "phone"));
+
+        mockMvc.perform(get("/api/v1/audit/verify")
+                        .param("fromSequence", "2")
+                        .param("toSequence", "3"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.intact").value(true))
+                .andExpect(jsonPath("$.data.completeChainVerification").value(false))
+                .andExpect(jsonPath("$.data.verifiedFromSequence").value(2))
+                .andExpect(jsonPath("$.data.verifiedThroughSequence").value(3));
+    }
+
+    @Test
+    void verifiesBoundedRangeBeginningAtGenesis() throws Exception {
+        appendEvent("RECORD_CREATED", "advisor-1", "account-1", payload("field", "address"));
+        appendEvent("RECORD_UPDATED", "advisor-1", "account-1", payload("field", "email"));
+
+        mockMvc.perform(get("/api/v1/audit/verify")
+                        .param("fromSequence", "1")
+                        .param("toSequence", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.intact").value(true))
+                .andExpect(jsonPath("$.data.completeChainVerification").value(false))
+                .andExpect(jsonPath("$.data.verifiedFromSequence").value(1))
+                .andExpect(jsonPath("$.data.verifiedThroughSequence").value(1));
+    }
+
+    @Test
+    void reportsBrokenPredecessorAtStartOfBoundedRange() throws Exception {
+        appendEvent("RECORD_CREATED", "advisor-1", "account-1", payload("field", "address"));
+        JsonNode second = appendEvent("RECORD_UPDATED", "advisor-1", "account-1", payload("field", "email"));
+        jdbcTemplate.update(
+                "UPDATE audit_event SET previous_hash = ? WHERE event_id = ?",
+                "0000000000000000000000000000000000000000000000000000000000000000",
+                java.util.UUID.fromString(second.path("eventId").asText()));
+
+        mockMvc.perform(get("/api/v1/audit/verify")
+                        .param("fromSequence", "2")
+                        .param("toSequence", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.intact").value(false))
+                .andExpect(jsonPath("$.data.violation.type").value("PREDECESSOR_HASH_MISMATCH"))
+                .andExpect(jsonPath("$.data.violation.chainSequence").value(2));
+    }
+
+    @Test
+    void rejectsInvalidVerificationRange() throws Exception {
+        mockMvc.perform(get("/api/v1/audit/verify")
+                        .param("fromSequence", "3")
+                        .param("toSequence", "2"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("MALFORMED_REQUEST"));
     }
 
     @Test

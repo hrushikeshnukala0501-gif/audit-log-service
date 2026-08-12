@@ -5,6 +5,8 @@ import java.util.UUID;
 
 public record VerificationResponse(
         boolean intact,
+        boolean completeChainVerification,
+        Long verifiedFromSequence,
         long verifiedThroughSequence,
         VerificationViolation violation,
         Instant verifiedAt) {

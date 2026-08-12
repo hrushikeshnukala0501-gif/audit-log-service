@@ -129,8 +129,8 @@ public class AuditEventController {
 
     @GetMapping("/verify")
     @Operation(
-            summary = "Verify the complete audit hash chain",
-            description = "Streams the full chain and reports whether all payload commitments, content hashes, previous-hash links, ordering, and the final chain head are intact.")
+            summary = "Verify the audit hash chain",
+            description = "Without bounds, streams and validates the complete chain including the final chain head. Optional sequence bounds validate only that range and its immediate predecessor continuity; a bounded result is not a complete-chain verification.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
@@ -139,13 +139,22 @@ public class AuditEventController {
                             {"timestamp":"2026-08-06T10:00:00Z","traceId":"f47ac10b-58cc-4372-a567-0e02b2c3d479","data":{"intact":false,"verifiedThroughSequence":4,"violation":{"eventId":"22222222-2222-2222-2222-222222222222","chainSequence":5,"type":"CONTENT_HASH_MISMATCH","message":"Stored event content does not match its content hash"},"verifiedAt":"2026-08-06T10:00:01Z"}}"""))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Verification could not complete", content = @Content)
     })
-    public ApiResponse<VerificationResponse> verify() {
-        ChainVerificationResult result = verificationService.verify();
+    public ApiResponse<VerificationResponse> verify(
+            @Parameter(description = "Optional inclusive first chain sequence; must be positive")
+            @RequestParam(required = false) @Min(1) Long fromSequence,
+            @Parameter(description = "Optional inclusive last chain sequence; must be positive")
+            @RequestParam(required = false) @Min(1) Long toSequence) {
+        ChainVerificationResult result = verificationService.verify(fromSequence, toSequence);
         VerificationResponse.VerificationViolation violation = result.violation() == null ? null
                 : new VerificationResponse.VerificationViolation(
                 result.violation().eventId(), result.violation().chainSequence(), result.violation().type(), result.violation().message());
         return ApiResponse.success(new VerificationResponse(
-                result.intact(), result.verifiedThroughSequence(), violation, result.verifiedAt()), traceId());
+                result.intact(),
+                result.completeChainVerification(),
+                result.verifiedFromSequence(),
+                result.verifiedThroughSequence(),
+                violation,
+                result.verifiedAt()), traceId());
     }
 
     private String traceId() {
