@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -37,16 +38,21 @@ public class AuditEventQueryService {
     public AuditEventQueryService(
             AuditEventRepository auditEventRepository,
             AuditEventPayloadRepository payloadRepository,
-            PayloadProtector payloadProtector, PayloadRedactionRepository redactions, PayloadRedactionProjector redactionProjector) {
+            PayloadProtector payloadProtector,
+            PayloadRedactionRepository redactions,
+            PayloadRedactionProjector redactionProjector) {
         this.auditEventRepository = auditEventRepository;
         this.payloadRepository = payloadRepository;
         this.payloadProtector = payloadProtector;
-        this.redactions = redactions; this.redactionProjector = redactionProjector;
+        this.redactions = redactions;
+        this.redactionProjector = redactionProjector;
     }
 
     @Transactional(readOnly = true)
     public AuditEventPage find(AuditEventSearchCriteria criteria) {
         validateTimeRange(criteria);
+        validatePageSize(criteria);
+        validateSortDirection(criteria);
         AuditEventCursor cursor = criteria.cursor() == null ? null : AuditEventCursor.decode(criteria.cursor(), criteria.sortDirection());
         int requestedSize = criteria.pageSize() + 1;
         Sort.Direction direction = criteria.sortDirection() == SortDirection.ASC ? Sort.Direction.ASC : Sort.Direction.DESC;
@@ -57,8 +63,7 @@ public class AuditEventQueryService {
         boolean hasNextPage = fetched.size() > criteria.pageSize();
         List<AuditEventEntity> pageEvents = hasNextPage ? fetched.subList(0, criteria.pageSize()) : fetched;
         Map<UUID, AuditEventPayloadEntity> payloadsByEventId = payloadsByEventId(pageEvents);
-        Map<UUID, List<String>> redactionsByEventId = new HashMap<>();
-        redactions.findByTargetEventIdIn(pageEvents.stream().map(AuditEventEntity::getEventId).toList()).forEach(redaction -> redactionsByEventId.computeIfAbsent(redaction.getTargetEventId(), ignored -> new java.util.ArrayList<>()).add(redaction.getJsonPointer()));
+        Map<UUID, List<String>> redactionsByEventId = redactionsByEventId(pageEvents);
         List<AuditEventResponse> events = pageEvents.stream()
                 .map(event -> toResponse(event, payloadsByEventId.get(event.getEventId()), redactionsByEventId.getOrDefault(event.getEventId(), List.of())))
                 .toList();
@@ -72,9 +77,15 @@ public class AuditEventQueryService {
         if (criteria.from() != null && criteria.to() != null && criteria.from().isAfter(criteria.to())) {
             throw new AuditLogException(ErrorCode.MALFORMED_REQUEST, "from must be before or equal to to");
         }
+    }
+
+    private void validatePageSize(AuditEventSearchCriteria criteria) {
         if (criteria.pageSize() < 1 || criteria.pageSize() > 100) {
             throw new AuditLogException(ErrorCode.MALFORMED_REQUEST, "pageSize must be between 1 and 100");
         }
+    }
+
+    private void validateSortDirection(AuditEventSearchCriteria criteria) {
         if (criteria.sortDirection() == null) {
             throw new AuditLogException(ErrorCode.MALFORMED_REQUEST, "sortDirection is required");
         }
@@ -88,6 +99,18 @@ public class AuditEventQueryService {
         payloadRepository.findByEventIdIn(events.stream().map(AuditEventEntity::getEventId).toList())
                 .forEach(payload -> payloads.put(payload.getEventId(), payload));
         return payloads;
+    }
+
+    private Map<UUID, List<String>> redactionsByEventId(List<AuditEventEntity> events) {
+        if (events.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, List<String>> redactionsByEventId = new HashMap<>();
+        redactions.findByTargetEventIdIn(events.stream().map(AuditEventEntity::getEventId).toList())
+                .forEach(redaction -> redactionsByEventId
+                        .computeIfAbsent(redaction.getTargetEventId(), ignored -> new ArrayList<>())
+                        .add(redaction.getJsonPointer()));
+        return redactionsByEventId;
     }
 
     private AuditEventResponse toResponse(AuditEventEntity event, AuditEventPayloadEntity payload, List<String> redactionPointers) {

@@ -1,7 +1,5 @@
 # Individual Work Attestation
 
-> Replace every bracketed value before submitting this repository.
-
 **Full name:** Hrushikesh Nukala
 
 **Email address:** hrushikesh.nukala0501@gmail.com
