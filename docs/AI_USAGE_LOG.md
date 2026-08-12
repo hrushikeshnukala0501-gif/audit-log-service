@@ -41,3 +41,4 @@ This log records material AI assistance used during development. The engineer re
 - Before each component commit, update this log with the material AI contribution, engineer decision, validation performed, and any known limitation.
 - Before committing, validate the log with `git diff --check` and confirm that the entry does not contain credentials, payload data, or unsupported claims.
 - After a commit and push, record the resulting commit reference and push outcome in the relevant entry or the next log entry.
+| 2026-08-12 | Item 1 architecture reconciliation | Replaced aspirational architecture claims with the implemented `com.auditlog` layered design; added ArchUnit boundary checks and an application result for retention responses. | Engineer approved the pragmatic layered approach. `mvn clean verify` passed with 6 tests, 0 failures, 0 errors, and 0 skipped; application-to-persistence coupling remains intentionally documented. |
